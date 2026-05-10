@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.pyc
+venv/
+.env
+
+# Java / Spark
+target/
+build/
+*.class
+*.jar
+*.log
+
+# Node (dashboard)
+node_modules/
+dist/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker logs
+*.log
+
+# Data (Big Data))
+data/
+checkpoints/
+output/
