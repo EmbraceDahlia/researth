@@ -1,0 +1,66 @@
+services:
+
+  zookeeper:
+    image: mmukadam/zookeeper:v3.8
+    container_name: researth-zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOO_4LW_COMMANDS_WHITELIST: "*"
+
+  kafka:
+    image: mmukadam/kafka:v7.4.0
+    container_name: researth-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: researth-zookeeper:2181
+
+      # LOCAL DEVELOPMENT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  postgres-db:
+    image: mmukadam/postgres:v16
+    container_name: researth-postgres
+    environment:
+      POSTGRES_DB: hive_metastore
+      POSTGRES_USER: hive
+      POSTGRES_PASSWORD: hivepassword
+    volumes:
+      - hive_db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  bigdata-platform:
+    image: mmukadam/cs523bdt-lab:v4.0
+    container_name: researth-bigdata
+    hostname: localhost
+    depends_on:
+      - postgres-db
+      - zookeeper
+      - kafka
+    environment:
+      - TZ=America/Chicago
+      - CLASS_PASS=DEcs523bdt_Feb2026
+    ports:
+      - "9870:9870"
+      - "8088:8088"
+      - "10000:10000"
+      - "16010:16010"
+      - "4040:4040"
+    volumes:
+      - ./spark-processor:/opt/spark-processor
+      - ./producer-service:/opt/producer-service
+      - ./dashboard-service:/opt/dashboard-service
+      - /etc/localtime:/etc/localtime:ro
+    tty: true
+
+volumes:
+  hive_db_data:
