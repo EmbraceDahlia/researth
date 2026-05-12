@@ -15,12 +15,13 @@ services:
       - zookeeper
     ports:
       - "9092:9092"
+    restart: on-failure
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: researth-zookeeper:2181
 
-      # LOCAL DEVELOPMENT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://researth-kafka:9092
 
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
@@ -61,6 +62,22 @@ services:
       - ./dashboard-service:/opt/dashboard-service
       - /etc/localtime:/etc/localtime:ro
     tty: true
+  producer:
+    build: ./producer-service
+    volumes:
+      - ./producer-service:/app
+    container_name: researth-producer
+    depends_on:
+      - kafka
+    restart: on-failure
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: researth-kafka:9092
+      KAFKA_TOPIC: environmental-data
+      OPENAQ_API_URL: https://api.openaq.org/v3/locations
+      OPENAQ_API_KEY: xxx
+      LIMIT: 100
+      POLL_INTERVAL: 20 
 
 volumes:
   hive_db_data:
+  

@@ -2,6 +2,7 @@ import os
 import json
 import time
 import requests
+
 from dotenv import load_dotenv
 from kafka import KafkaProducer
 
@@ -26,6 +27,7 @@ headers = {
 }
 
 params = {
+    "parameters_id": 2,
     "limit": LIMIT
 }
 
@@ -33,21 +35,47 @@ print(f"Streaming from {API_URL} every {POLL_INTERVAL}s to topic {TOPIC}")
 
 while True:
     try:
-        response = requests.get(API_URL, headers=headers, params=params)
+        response = requests.get(
+            API_URL,
+            headers=headers,
+            params=params
+        )
+
         response.raise_for_status()
-
         data = response.json()
+
+        # debugging
+        # print(json.dumps(data, indent=2))
+
         results = data.get("results", [])
-
         for item in results:
-            message = {
-                "location": item.get("name"),
-                "country": item.get("country", {}).get("name"),
-                "coordinates": item.get("coordinates")
-            }
 
-            producer.send(TOPIC, value=message)
-            print("Sent:", message)
+            location = item.get("name")
+            country = item.get("country", {}).get("name")
+            coords = item.get("coordinates", {})
+            sensors = item.get("sensors", [])
+            
+            for sensor in sensors:
+
+                parameter = sensor.get("parameter", {})
+                # Keep only PM2.5
+                if parameter.get("id") != 2:
+                    continue
+                timestamp = (item.get("datetimeLast") or {}).get("utc")
+                message = {
+                    "location": location,
+                    "country": country,
+                    "latitude": coords.get("latitude"),
+                    "longitude": coords.get("longitude"),
+                    "parameter_id": parameter.get("id"),
+                    "parameter": parameter.get("name"),
+                    "unit": parameter.get("units"),
+                    "sensor_id": sensor.get("id"),
+                    "timestamp": timestamp
+                }
+
+                producer.send(TOPIC, value=message)
+                print("Sent:", message)
 
         time.sleep(POLL_INTERVAL)
 
